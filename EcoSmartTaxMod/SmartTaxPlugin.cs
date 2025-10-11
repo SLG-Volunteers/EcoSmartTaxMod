@@ -51,6 +51,9 @@ namespace Eco.Mods.SmartTax
 
         [LocDescription("Seconds before a tax event can no longer be combined with a like one.")]
         public int AggregateTaxEventThreshold { get; set; } = 60;
+
+        [LocDescription("Disables the usage of internal transfers for all actions - can cause more lag, but enables laws to see the transfers.")]
+        public bool NoInternalTransfer { get; set; } = false;
     }
 
     [Localized, LocDisplayName(nameof(SmartTaxPlugin)), Priority(PriorityAttribute.High)]

@@ -8,23 +8,20 @@ namespace Eco.Mods.SmartTax
     using Core.Controller;
     using Core.Systems;
     using Core.Utils;
-
-    using Gameplay.Utils;
-    using Gameplay.Systems.TextLinks;
-    using Gameplay.Systems.NewTooltip;
-    using Gameplay.Players;
     using Gameplay.Economy;
     using Gameplay.Economy.Transfer;
     using Gameplay.Economy.Transfer.Internal;
     using Gameplay.GameActions;
     using Gameplay.Items;
+    using Gameplay.Players;
     using Gameplay.Settlements;
-
-    using Shared.Serialization;
-    using Shared.Localization;
-    using Shared.Services;
-    using Shared.Items;
+    using Gameplay.Systems.NewTooltip;
+    using Gameplay.Systems.TextLinks;
+    using Gameplay.Utils;
     using Shared.IoC;
+    using Shared.Items;
+    using Shared.Localization;
+    using Shared.Serialization;
 
     [Serialized]
     public class TaxDebt
@@ -268,22 +265,13 @@ namespace Eco.Mods.SmartTax
         public override void OnLinkClicked(TooltipOrigin origin, TooltipClickContext clickContext, User user) => OpenTaxLog(user.Player);
 
         public float GetDebtSum(Func<TaxDebt, bool> predicate)
-            => TaxDebts
-                .Where(predicate)
-                .Select(taxDebt => taxDebt.Amount)
-                .Sum();
+            => TaxDebts.Where(predicate).Select(taxDebt => taxDebt.Amount).Sum();
 
         public float GetRebateSum(Func<TaxRebate, bool> predicate)
-            => TaxRebates
-                .Where(predicate)
-                .Select(taxRebate => taxRebate.Amount)
-                .Sum();
+            => TaxRebates.Where(predicate).Select(taxRebate => taxRebate.Amount).Sum();
 
         public float GetPaymentSum(Func<PaymentCredit, bool> predicate)
-            => PaymentCredits
-                .Where(predicate)
-                .Select(paymentCredit => paymentCredit.Amount)
-                .Sum();
+            => PaymentCredits.Where(predicate).Select(paymentCredit => paymentCredit.Amount).Sum();
 
         public LocString DebtSummary()
         {
@@ -307,8 +295,7 @@ namespace Eco.Mods.SmartTax
            
 
         [NewTooltip(CacheAs.Instance, 100)]
-        public LocString Tooltip()
-            => Localizer.Do($"Owes {DebtSummary()}, due {CreditSummary()}.\n{DescribeDebts()}\n{DescribeRebates()}\n{DescribePayments()}");
+        public LocString Tooltip()=> Localizer.Do($"Owes {DebtSummary()}, due {CreditSummary()}.\n{DescribeDebts()}\n{DescribeRebates()}\n{DescribePayments()}");
 
         public LocString DescribeDebts()
         {
@@ -338,42 +325,36 @@ namespace Eco.Mods.SmartTax
         }
 
         public void Tick()
-		{
-			if (Creator == null) { return; }
+        {
+            if (Creator == null) { return; }
             CheckInvalidAccounts();
 
-			var pack = new GameActionPack();
+            var pack = new GameActionPack();
             var acc = pack.GetAccountChangeSet();
             bool didWork = false;
 
-			// Iterate debts, smallest first, try to cancel out with rebates
-			var debts = TaxDebts
-                .OrderBy(taxDebt => taxDebt.Amount)
-                .ToArray();
+            // Iterate debts, smallest first, try to cancel out with rebates
+            var debts = TaxDebts.OrderBy(taxDebt => taxDebt.Amount).ToArray();
             foreach (var taxDebt in debts)
             {
                 didWork |= TickDebtRebates(taxDebt);
             }
 
-			// Now iterate payments, smallest first, try to cancel out with taxes left after rebate, otherwise try to pay
-			var payments = PaymentCredits
-                .OrderBy(paymentCredit => paymentCredit.Amount)
-                .ToArray();
+            // Now iterate payments, smallest first, try to cancel out with taxes left after rebate, otherwise try to pay
+            var payments = PaymentCredits.OrderBy(paymentCredit => paymentCredit.Amount).ToArray();
             foreach (var paymentCredit in payments)
             {
                 didWork |= TickPayment(paymentCredit, pack, acc);
             }
 
-			// Now iterate debts again, smallest first, try to collect
-			debts = TaxDebts
-                .OrderBy(taxDebt => taxDebt.Amount)
-                .ToArray();
+            // Now iterate debts again, smallest first, try to collect
+            debts = TaxDebts.OrderBy(taxDebt => taxDebt.Amount).ToArray();
             foreach (var taxDebt in debts)
             {
                 didWork |= TickDebt(taxDebt, pack, acc);
             }
 
-			if (didWork) { ServiceHolder<ITooltipSubscriptions>.Obj.MarkTooltipPartDirty(nameof(Tooltip), instance: this); }
+            if (didWork) { ServiceHolder<ITooltipSubscriptions>.Obj.MarkTooltipPartDirty(nameof(Tooltip), instance: this); }
 
             if (pack.Empty) { return; }
 
@@ -387,25 +368,21 @@ namespace Eco.Mods.SmartTax
 
         private void CheckInvalidAccounts()
         {
-            var taxDebtsToVoid = TaxDebts
-                .Where(taxDebt => taxDebt.TargetAccount == null || taxDebt.TargetAccount.IsDestroyed)
-                .ToArray();
+            var taxDebtsToVoid = TaxDebts.Where(taxDebt => taxDebt.TargetAccount == null || taxDebt.TargetAccount.IsDestroyed).ToArray();
             foreach (var taxDebt in taxDebtsToVoid)
             {
                 TaxDebts.Remove(taxDebt);
                 TaxLog.AddTaxEvent(new VoidEvent(taxDebt));
             }
-            var taxRebatesToVoid = TaxRebates
-                .Where(taxRebate => taxRebate.TargetAccount == null || taxRebate.TargetAccount.IsDestroyed)
-                .ToArray();
+
+            var taxRebatesToVoid = TaxRebates.Where(taxRebate => taxRebate.TargetAccount == null || taxRebate.TargetAccount.IsDestroyed).ToArray();
             foreach (var taxRebate in taxRebatesToVoid)
             {
                 TaxRebates.Remove(taxRebate);
                 TaxLog.AddTaxEvent(new VoidEvent(taxRebate));
             }
-            var paymentCreditsToVoid = PaymentCredits
-                .Where(paymentCredit => paymentCredit.SourceAccount == null || paymentCredit.SourceAccount.IsDestroyed)
-                .ToArray();
+            
+            var paymentCreditsToVoid = PaymentCredits.Where(paymentCredit => paymentCredit.SourceAccount == null || paymentCredit.SourceAccount.IsDestroyed).ToArray();
             foreach (var paymentCredit in paymentCreditsToVoid)
             {
                 PaymentCredits.Remove(paymentCredit);
@@ -505,7 +482,7 @@ namespace Eco.Mods.SmartTax
             {
                 // They can be fully paid
                 TaxLog.AddTaxEvent(new PaymentEvent(paymentCredit.Amount, paymentCredit));
-                TransferInternalUtils.TransferInternal(pack, paymentCredit.Amount, paymentCredit.Currency, paymentCredit.SourceAccount, Creator.BankAccount, null, Localizer.NotLocalizedStr(paymentCredit.PaymentCode), acc);
+                HandleTransfer(pack, paymentCredit.Amount, paymentCredit.Currency, paymentCredit.SourceAccount, Creator.BankAccount, Localizer.NotLocalizedStr(paymentCredit.PaymentCode), acc);
                 paymentCredit.Amount = 0.0f;
                 PaymentCredits.Remove(paymentCredit);
                 return true;
@@ -514,7 +491,7 @@ namespace Eco.Mods.SmartTax
             {
                 // They can be partially paid
                 TaxLog.AddTaxEvent(new PaymentEvent(availableAmount, paymentCredit));
-                TransferInternalUtils.TransferInternal(pack, availableAmount, paymentCredit.Currency, paymentCredit.SourceAccount, Creator.BankAccount, null, Localizer.NotLocalizedStr(paymentCredit.PaymentCode), acc);
+                HandleTransfer(pack, availableAmount, paymentCredit.Currency, paymentCredit.SourceAccount, Creator.BankAccount, Localizer.NotLocalizedStr(paymentCredit.PaymentCode), acc);
                 paymentCredit.Amount -= availableAmount;
                 return true;
             }
@@ -545,7 +522,7 @@ namespace Eco.Mods.SmartTax
                 if (amount >= amountToCollect)
                 {
                     // The account balance covers the debt fully
-                    TransferInternalUtils.TransferInternal(pack, amountToCollect, taxDebt.Currency, account, taxDebt.TargetAccount, null, Localizer.NotLocalizedStr(taxDebt.TaxCode), acc);
+                    HandleTransfer(pack, amountToCollect, taxDebt.Currency, account, taxDebt.TargetAccount, Localizer.NotLocalizedStr(taxDebt.TaxCode), acc);
                     amountCollected += amountToCollect;
                     amountToCollect = 0.0f;
                     break;
@@ -553,7 +530,7 @@ namespace Eco.Mods.SmartTax
                 else if (amount > Transfers.AlmostZero)
                 {
                     // The account balance covers the debt partially
-                    TransferInternalUtils.TransferInternal(pack, amount, taxDebt.Currency, account, taxDebt.TargetAccount, null, Localizer.NotLocalizedStr(taxDebt.TaxCode), acc);
+                    HandleTransfer(pack, amount, taxDebt.Currency, account, taxDebt.TargetAccount, Localizer.NotLocalizedStr(taxDebt.TaxCode), acc);
                     amountCollected += amount;
                     amountToCollect -= amount;
                 }
@@ -571,6 +548,38 @@ namespace Eco.Mods.SmartTax
                 return true;
             }
             return false;
+        }
+
+        private static void HandleTransfer(GameActionPack gameActionPack, float transferAmount, Currency transferCurrency, BankAccount sourceAccount, BankAccount targetAccount, LocString transferDescription, AccountChangeSet accountChangeSet)
+        {
+
+            if (SmartTaxPlugin.Obj.Config.NoInternalTransfer)
+            {
+                DoTransfer(gameActionPack, transferAmount, transferCurrency, sourceAccount, targetAccount, transferDescription, accountChangeSet);
+            }
+            else
+            {
+                DoInternalTransfer(gameActionPack, transferAmount, transferCurrency, sourceAccount, targetAccount, transferDescription, accountChangeSet);
+            }
+        }
+
+        private static void DoTransfer(GameActionPack gameActionPack, float transferAmount, Currency transferCurrency, BankAccount sourceAccount, BankAccount targetAccount, LocString transferDescription, AccountChangeSet accountChangeSet)
+        {
+            Transfers.Transfer(gameActionPack, new TransferData
+            {
+                Currency = transferCurrency,
+                Amount = transferAmount,
+                SourceAccount = sourceAccount,
+                TargetAccount = targetAccount,
+                SuperAccess = true,
+                TransferDescription = transferDescription,
+                PendingAccountChanges = accountChangeSet
+            });
+        }
+
+        private static void DoInternalTransfer(GameActionPack gameActionPack, float transferAmount, Currency transferCurrency, BankAccount sourceAccount, BankAccount targetAccount, LocString transferDescription, AccountChangeSet accountChangeSet)
+        {
+            TransferInternalUtils.TransferInternal(gameActionPack, transferAmount, transferCurrency, sourceAccount, targetAccount, null, transferDescription, accountChangeSet);
         }
 
         private IEnumerable<(BankAccount account, float ownership)> GetTaxableAccounts(Currency currency, Settlement jurisdiction)
