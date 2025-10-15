@@ -327,34 +327,41 @@ namespace Eco.Mods.SmartTax
         public void Tick()
         {
             if (Creator == null) { return; }
+
             CheckInvalidAccounts();
 
-            var pack = new GameActionPack();
+			var pack = new GameActionPack();
             var acc = pack.GetAccountChangeSet();
             bool didWork = false;
 
-            // Iterate debts, smallest first, try to cancel out with rebates
-            var debts = TaxDebts.OrderBy(taxDebt => taxDebt.Amount).ToArray();
+			// Iterate debts, smallest first, try to cancel out with rebates
+			var debts = TaxDebts
+                .OrderBy(taxDebt => taxDebt.Amount)
+                .ToArray();
             foreach (var taxDebt in debts)
             {
                 didWork |= TickDebtRebates(taxDebt);
             }
 
-            // Now iterate payments, smallest first, try to cancel out with taxes left after rebate, otherwise try to pay
-            var payments = PaymentCredits.OrderBy(paymentCredit => paymentCredit.Amount).ToArray();
+			// Now iterate payments, smallest first, try to cancel out with taxes left after rebate, otherwise try to pay
+			var payments = PaymentCredits
+                .OrderBy(paymentCredit => paymentCredit.Amount)
+                .ToArray();
             foreach (var paymentCredit in payments)
             {
                 didWork |= TickPayment(paymentCredit, pack, acc);
             }
 
-            // Now iterate debts again, smallest first, try to collect
-            debts = TaxDebts.OrderBy(taxDebt => taxDebt.Amount).ToArray();
+			// Now iterate debts again, smallest first, try to collect
+			debts = TaxDebts
+                .OrderBy(taxDebt => taxDebt.Amount)
+                .ToArray();
             foreach (var taxDebt in debts)
             {
                 didWork |= TickDebt(taxDebt, pack, acc);
             }
 
-            if (didWork) { ServiceHolder<ITooltipSubscriptions>.Obj.MarkTooltipPartDirty(nameof(Tooltip), instance: this); }
+			if (didWork) { ServiceHolder<ITooltipSubscriptions>.Obj.MarkTooltipPartDirty(nameof(Tooltip), instance: this); }
 
             if (pack.Empty) { return; }
 
