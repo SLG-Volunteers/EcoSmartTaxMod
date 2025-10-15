@@ -330,12 +330,12 @@ namespace Eco.Mods.SmartTax
 
             CheckInvalidAccounts();
 
-			var pack = new GameActionPack();
+            var pack = new GameActionPack();
             var acc = pack.GetAccountChangeSet();
             bool didWork = false;
 
-			// Iterate debts, smallest first, try to cancel out with rebates
-			var debts = TaxDebts
+            // Iterate debts, smallest first, try to cancel out with rebates
+            var debts = TaxDebts
                 .OrderBy(taxDebt => taxDebt.Amount)
                 .ToArray();
             foreach (var taxDebt in debts)
@@ -343,8 +343,8 @@ namespace Eco.Mods.SmartTax
                 didWork |= TickDebtRebates(taxDebt);
             }
 
-			// Now iterate payments, smallest first, try to cancel out with taxes left after rebate, otherwise try to pay
-			var payments = PaymentCredits
+            // Now iterate payments, smallest first, try to cancel out with taxes left after rebate, otherwise try to pay
+            var payments = PaymentCredits
                 .OrderBy(paymentCredit => paymentCredit.Amount)
                 .ToArray();
             foreach (var paymentCredit in payments)
@@ -352,8 +352,8 @@ namespace Eco.Mods.SmartTax
                 didWork |= TickPayment(paymentCredit, pack, acc);
             }
 
-			// Now iterate debts again, smallest first, try to collect
-			debts = TaxDebts
+            // Now iterate debts again, smallest first, try to collect
+            debts = TaxDebts
                 .OrderBy(taxDebt => taxDebt.Amount)
                 .ToArray();
             foreach (var taxDebt in debts)
@@ -361,7 +361,7 @@ namespace Eco.Mods.SmartTax
                 didWork |= TickDebt(taxDebt, pack, acc);
             }
 
-			if (didWork) { ServiceHolder<ITooltipSubscriptions>.Obj.MarkTooltipPartDirty(nameof(Tooltip), instance: this); }
+            if (didWork) { ServiceHolder<ITooltipSubscriptions>.Obj.MarkTooltipPartDirty(nameof(Tooltip), instance: this); }
 
             if (pack.Empty) { return; }
 
